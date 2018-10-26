@@ -41,6 +41,7 @@ type Buffer struct {
 	es      []segment
 	cur     *segment
 	filePos int64
+	trunc   int64
 }
 
 // Span identifies the left-most and right-most segments that cover the range of
@@ -167,16 +168,25 @@ func (b *Buffer) Next() (skip int64, err error) {
 			return e.off - start, nil
 		}
 	}
+	size := b.Size()
+	if start < size {
+		b.filePos = size
+		b.cur = nil
+		return size - start, nil
+	}
 	return 0, io.EOF
 }
 
 // Size returns the apparent size of the segments, which is defined to be the offset beyond the
 // farthest write.
 func (b Buffer) Size() int64 {
-	if len(b.es) == 0 {
-		return 0
+	if len(b.es) > 0 {
+		end := b.es[len(b.es)-1].end()
+		if end > b.trunc {
+			return end
+		}
 	}
-	return b.es[len(b.es)-1].end()
+	return b.trunc
 }
 
 // Reset empties the buffer.
@@ -227,6 +237,25 @@ func (b *Buffer) writeAt(p []byte, off int64, ownP bool) (n int) {
 	}
 	b.cur = nil
 	return
+}
+
+func (b *Buffer) Truncate(ofs int64) {
+	b.trunc = ofs
+	var i int
+	for i = range b.es {
+		if b.es[i].contains(ofs) {
+			end := ofs - b.es[i].off
+			if end != int64(len(b.es[i].data)) {
+				nd := make([]byte, end)
+				copy(nd, b.es[i].data)
+				b.es[i].data = nd
+			}
+			break
+		}
+	}
+	if i+1 < len(b.es) {
+		b.delSegments(i+1, len(b.es)-i)
+	}
 }
 
 func (b *Buffer) delSegments(idx, num int) {

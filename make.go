@@ -6,8 +6,8 @@ import (
 )
 
 type maker struct {
-	scan         *bufio.Scanner
-	tooManyZeros int64
+	scan     *bufio.Scanner
+	minZeros int64
 
 	zeros int64
 	data  []byte
@@ -38,7 +38,7 @@ func (m *maker) Read(p []byte) (n int, err error) {
 			err = m.err
 			break
 		}
-		if m.zeros >= m.tooManyZeros {
+		if m.zeros >= m.minZeros {
 			// Stop reading with io.EOF until we're advanced with Next.
 			break
 		}
@@ -63,7 +63,7 @@ func (m *maker) Read(p []byte) (n int, err error) {
 }
 
 func (m *maker) Next() (skip int64, err error) {
-	if m.zeros >= m.tooManyZeros {
+	if m.zeros >= m.minZeros {
 		skip = m.zeros
 		m.zeros = 0
 	}
@@ -87,10 +87,14 @@ func (m *maker) readMore() {
 
 // Make takes the stream from r, and produces a sparse Reader that reads
 // segments of bytes that lie between sequences of tooManyZeros or more zeros.
-func Make(r io.Reader, tooManyZeros int64) Reader {
+func Make(r io.Reader, minZeros int64) Reader {
+	return newMaker(r, minZeros)
+}
+
+func newMaker(r io.Reader, minZeros int64) *maker {
 	m := &maker{
-		scan:         bufio.NewScanner(r),
-		tooManyZeros: tooManyZeros,
+		scan:     bufio.NewScanner(r),
+		minZeros: minZeros,
 	}
 	m.scan.Split(m.splitFunc)
 	m.scan.Scan()

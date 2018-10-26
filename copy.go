@@ -16,6 +16,9 @@ func Copy(w io.WriteSeeker, r Reader) (n int64, err error) {
 		}
 
 		if skip, err = r.Next(); err != nil {
+			if err == io.EOF {
+				err = nil
+			}
 			break
 		}
 		if skip > 0 {

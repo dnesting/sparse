@@ -183,9 +183,45 @@ func TestBufferNext(t *testing.T) {
 	}
 
 	sb.Find(5)
-	_, err := sb.Next()
+	skip, err := sb.Next()
+	if skip != 3 || err != nil {
+		t.Errorf("Next should advance 3, got %d, %v", skip, err)
+	}
+
+	n, err = sb.Read(got)
+	if n != 0 || err != io.EOF {
+		t.Errorf("Read should return 0,nil, got %d,%v", n, err)
+	}
+
+	skip, err = sb.Next()
+	if skip != 0 || err != io.EOF {
+		t.Errorf("Next should return io.EOF, got skip=%d err=%v", skip, err)
+	}
+}
+
+func TestTruncate(t *testing.T) {
+	var sb sparse.Buffer
+	sb.Truncate(3)
+
+	got := make([]byte, 5)
+	_, err := sb.Read(got)
 	if err != io.EOF {
-		t.Errorf("Next should advance to EOF, got %v", err)
+		t.Errorf("Truncate first read should get io.EOF, got %v", err)
+	}
+
+	skip, err := sb.Next()
+	if skip != 3 || err != nil {
+		t.Errorf("Truncate then Next should get skip=3, err=nil, got %d, %v", skip, err)
+	}
+
+	_, err = sb.Read(got)
+	if err != io.EOF {
+		t.Errorf("Truncate second read should get io.EOF, got %v", err)
+	}
+
+	skip, err = sb.Next()
+	if skip != 0 || err != io.EOF {
+		t.Errorf("Truncate then Next should get skip=0, err=io.EOF, got %d, %v", skip, err)
 	}
 }
 
