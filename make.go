@@ -86,7 +86,7 @@ func (m *maker) readMore() {
 }
 
 // Make takes the stream from r, and produces a sparse Reader that reads
-// segments of bytes that lie between sequences of tooManyZeros or more zeros.
+// segments of bytes that lie between sequences of minZeros or more zeros.
 func Make(r io.Reader, minZeros int64) Reader {
 	return newMaker(r, minZeros)
 }

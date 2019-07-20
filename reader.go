@@ -1,12 +1,8 @@
 package sparse
 
 import (
-	"errors"
 	"io"
 )
-
-var errWhence = errors.New("Seek: invalid whence")
-var errOffset = errors.New("Seek: invalid offset")
 
 // ReadSeeker implements io.ReadSeeker and io.ReaderAt from the given sparse
 // ReadFinder and a fallback io.ReaderAt to fill in the gaps. If Fallback is
@@ -40,7 +36,7 @@ func (b *ReadSeeker) Read(p []byte) (n int, err error) {
 // to change how ofs is interpreted.  The file position may be set beyond the size of the Buffer and
 // writes will create a new extent at that location.
 func (b *ReadSeeker) Seek(ofs int64, whence int) (n int64, err error) {
-	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.src.Size())
+	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.src.Size(), nil)
 	n = b.filePos
 	return
 }
@@ -101,7 +97,7 @@ type zeroType struct{}
 
 // Zero implements Read and ReadAt that read nothing but zeros at every location.  It is the default
 // fallback reader for NewReader and NewReadSeeker.
-var Zero zeroType = zeroType{}
+var Zero zeroType
 
 func (z zeroType) ReadAt(p []byte, _ int64) (n int, err error) {
 	return z.Read(p)
@@ -169,20 +165,4 @@ func (ir *streamReader) Read(p []byte) (n int, err error) {
 		err = io.EOF
 	}
 	return
-}
-
-func resolveSeek(ofs int64, whence int, currentPos, endPos int64) (int64, error) {
-	switch whence {
-	case io.SeekStart:
-	case io.SeekCurrent:
-		ofs += currentPos
-	case io.SeekEnd:
-		ofs += endPos
-	default:
-		return 0, errWhence
-	}
-	if ofs < 0 {
-		return 0, errOffset
-	}
-	return ofs, nil
 }

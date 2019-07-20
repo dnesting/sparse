@@ -116,6 +116,25 @@ func (b *Buffer) Find(off int64) (readerOfs, size int64, err error) {
 	return 0, 0, io.EOF
 }
 
+func (b *Buffer) segments() (segs []int64, err error) {
+	var ofs int64
+	for _, e := range b.es {
+		if ofs != e.off {
+			segs = append(segs, ofs, e.off)
+		}
+		ofs = e.end()
+		segs = append(segs, e.off, ofs)
+	}
+	if len(segs) == 0 {
+		segs = []int64{0}
+		if size := b.Size(); size > 0 {
+			segs = append(segs, 0, b.Size())
+		}
+	}
+	segs = append(segs, b.Size())
+	return segs, nil
+}
+
 // MoveTo moves the file pointer to off.  If off lies between sparse data
 // segments and advance is true, the file pointer is advanced to the start
 // of the next sequence.  Returns true if the file pointer ends up within
@@ -334,7 +353,7 @@ func (b *Buffer) writeInsert(p []byte, off int64, ownP bool) (n int) {
 // Seek seeks the file position to ofs, relative to whence.  Seek is permitted
 // to any positive file position.
 func (b *Buffer) Seek(ofs int64, whence int) (n int64, err error) {
-	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.Size())
+	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.Size(), b)
 	b.cur = nil
 	return b.filePos, err
 }
