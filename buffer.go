@@ -116,28 +116,6 @@ func (b *Buffer) Find(off int64) (readerOfs, size int64, err error) {
 	return 0, 0, io.EOF
 }
 
-/*
-// segments() returns a list of offsets representing both the holes (pairs
-// starting with even indices) and the data segments (pairs starting with odd
-// indices).  The first item in the list will always be zero and the last will
-// always be the size of the data.  For example:
-//
-//   [0, 0, 2, 5, 7, 7]
-//      (0, 2)           first data segment (length 2)
-//            (5, 7)     second data segment (length 2)
-//   (0, 0)              first hole (zero length)
-//         (2, 5)        second hole (length 3)
-//               (7, 7)  last "hole" (the end of the data)
-func (b *Buffer) segments() (segs []int64, err error) {
-	segs = append(segs, 0)
-	for _, e := range b.es {
-		segs = append(segs, e.off, e.end())
-	}
-	segs = append(segs, b.Size())
-	return segs, nil
-}
-*/
-
 // moveTo moves the file pointer to off.  If off lies between sparse data
 // segments and advance is true, the file pointer is advanced to the start
 // of the next sequence.  Returns true if the file pointer ends up within

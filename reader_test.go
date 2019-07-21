@@ -151,63 +151,6 @@ func TestZeroFill(t *testing.T) {
 	}
 }
 
-/*
-func TestWrite(t *testing.T) {
-	var sbuf sparse.Bytes
-	rw := sparse.NewReadWriter(&sbuf, nil)
-	var err error
-	n, err := rw.Seek(5, io.SeekStart)
-	if n != 5 || err != nil {
-		t.Errorf("Seek should result in n=5, err=nil, got n=%d, err=%v", n, err)
-	}
-
-	nr, _ := rw.Write([]byte("AAA"))
-	if nr != 3 {
-		t.Errorf("%v: expected n=%d, got %d", rw, 3, nr)
-	}
-
-	buf := make([]byte, 10)
-	rw.Seek(2, io.SeekStart)
-	nr, _ = rw.Read(buf)
-	if nr != 6 {
-		t.Errorf("expected read of 6 bytes, got %d", nr)
-	}
-	expected := "...AAA"
-	actual := printable(buf[:nr])
-	if expected != actual {
-		t.Errorf("%v: expected to read %s, got %s", rw, expected, actual)
-	}
-
-	n, _ = rw.Seek(-3, io.SeekCurrent)
-	if n != 5 {
-		t.Errorf("Seek(current-3) should give n=%d, got %d", 5, n)
-	}
-	nr, _ = rw.Read(buf)
-	if nr != 3 {
-		t.Errorf("expected read of 3 bytes, got %d", nr)
-	}
-	expected = "AAA"
-	actual = printable(buf[:nr])
-	if expected != actual {
-		t.Errorf("expected to read %s, got %s", expected, actual)
-	}
-
-	n, _ = rw.Seek(-2, io.SeekEnd)
-	if n != 6 {
-		t.Errorf("Seek(current-3) should give n=%d, got %d", 6, n)
-	}
-	nr, _ = rw.Read(buf)
-	if nr != 2 {
-		t.Errorf("expected read of 2 bytes, got %d", nr)
-	}
-	expected = "AA"
-	actual = printable(buf[:nr])
-	if expected != actual {
-		t.Errorf("expected to read %s, got %s", expected, actual)
-	}
-}
-*/
-
 func ExampleReader() {
 	var sb sparse.Buffer
 	sb.WriteAt([]byte("AAA"), 2)
