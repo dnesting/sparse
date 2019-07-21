@@ -12,6 +12,9 @@
 // Buffer is a concrete type implementing Reader, Finder, io.WriterAt and
 // io.WriteSeeker.  It can be used similarly to bytes.Buffer but does not
 // directly implement io.Reader.
+//
+// There are no types in this package facilitating writing sparse data,
+// because io.WriteSeeker and io.WriterAt are sufficient.
 package sparse
 
 import (
@@ -27,6 +30,11 @@ import (
 // sparse stream is reached when Next returns io.EOF.
 type Reader interface {
 	io.Reader
+
+	// Next advances the stream to the next segment of data, which may be
+	// zero-length.  Returns the number of bytes that needed to be skipped
+	// and any error encountered.  Returns io.EOF if there are no more
+	// segments of data in the sparse stream.
 	Next() (skip int64, err error)
 }
 

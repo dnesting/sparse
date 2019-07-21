@@ -101,3 +101,28 @@ func newMaker(r io.Reader, minZeros int64) *maker {
 	m.data = m.scan.Bytes()
 	return m
 }
+
+/*
+func Scan(r io.Reader, minZeros int64) (segments []int64, err error) {
+	segments = make([]int64, 1)
+	z := newMaker(r, minZeros)
+	var ofs int64
+	for {
+		_, err = z.Next()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			break
+		}
+		segments = append(segments, ofs+int64(len(z.data)))
+		ofs += int64(len(z.data))
+		segments = append(segments, ofs+z.zeros)
+		ofs += z.zeros
+	}
+	if err != nil {
+		return nil, err
+	}
+	return segments, nil
+}
+*/

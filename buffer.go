@@ -116,26 +116,29 @@ func (b *Buffer) Find(off int64) (readerOfs, size int64, err error) {
 	return 0, 0, io.EOF
 }
 
+/*
+// segments() returns a list of offsets representing both the holes (pairs
+// starting with even indices) and the data segments (pairs starting with odd
+// indices).  The first item in the list will always be zero and the last will
+// always be the size of the data.  For example:
+//
+//   [0, 0, 2, 5, 7, 7]
+//      (0, 2)           first data segment (length 2)
+//            (5, 7)     second data segment (length 2)
+//   (0, 0)              first hole (zero length)
+//         (2, 5)        second hole (length 3)
+//               (7, 7)  last "hole" (the end of the data)
 func (b *Buffer) segments() (segs []int64, err error) {
-	var ofs int64
+	segs = append(segs, 0)
 	for _, e := range b.es {
-		if ofs != e.off {
-			segs = append(segs, ofs, e.off)
-		}
-		ofs = e.end()
-		segs = append(segs, e.off, ofs)
-	}
-	if len(segs) == 0 {
-		segs = []int64{0}
-		if size := b.Size(); size > 0 {
-			segs = append(segs, 0, b.Size())
-		}
+		segs = append(segs, e.off, e.end())
 	}
 	segs = append(segs, b.Size())
 	return segs, nil
 }
+*/
 
-// MoveTo moves the file pointer to off.  If off lies between sparse data
+// moveTo moves the file pointer to off.  If off lies between sparse data
 // segments and advance is true, the file pointer is advanced to the start
 // of the next sequence.  Returns true if the file pointer ends up within
 // a data segment.
@@ -175,8 +178,8 @@ func (b *Buffer) Read(p []byte) (n int, err error) {
 }
 
 // Next advances to the next sparse segment of data in the file stream.  If the
-// file pointer currently points within sparse data, it will be advanced beyond
-// the end of this segment of data to the following one.  If there is no next
+// file pointer currently points within a segment of data, it will be advanced
+// beyond the end of this segment to the following one.  If there is no next
 // segment of data, returns io.EOF.
 func (b *Buffer) Next() (skip int64, err error) {
 	start := b.filePos
@@ -232,8 +235,8 @@ func (b *Buffer) writeAt(p []byte, off int64, ownP bool) (n int) {
 	left, right, keepLeft, keepRight, mergeNeeded := b.span(off, int64(len(p)))
 
 	// If we're allowed to keep p, then we can save ourselves some copies if we avoid trying
-	// to merge adjacent segments.  We can spot these in the return from Span by the fact that
-	// Span will ask us to keep their entire contents.
+	// to merge adjacent segments.  We can spot these in the return from span by the fact that
+	// span will ask us to keep their entire contents.
 	if mergeNeeded && ownP {
 		if len(b.es[left].data) == int(keepLeft) {
 			left++
@@ -351,7 +354,13 @@ func (b *Buffer) writeInsert(p []byte, off int64, ownP bool) (n int) {
 }
 
 // Seek seeks the file position to ofs, relative to whence.  Seek is permitted
-// to any positive file position.
+// to any positive file position.  Seek supports these values for whence:
+//
+//   io.SeekStart     seek relative to the start of the buffer
+//   io.SeekCurrent   seek relative to the current position of the buffer
+//   io.SeekEnd       seek relative to the end of the buffer
+//   SeekData         seek relative to the start for data bytes
+//   SeekHole         seek relative to the start for a gap between data (or EOF)
 func (b *Buffer) Seek(ofs int64, whence int) (n int64, err error) {
 	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.Size(), b)
 	b.cur = nil

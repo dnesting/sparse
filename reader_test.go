@@ -70,6 +70,50 @@ func TestSimple(t *testing.T) {
 	}
 }
 
+func TestReaderSeek(t *testing.T) {
+	var sbuf sparse.Buffer
+	// 01234567890123456789
+	// ..ABC...DEFGHI...JKL
+	sbuf.StoreAt([]byte("ABC"), 2)
+	sbuf.StoreAt([]byte("DEF"), 8)
+	sbuf.StoreAt([]byte("GHI"), 11)
+	sbuf.StoreAt([]byte("JKL"), 17)
+
+	b := sparse.NewReadSeeker(&sbuf, nil)
+	buf := make([]byte, 5)
+
+	var tests = []struct {
+		Pos     int64
+		Whence  int
+		Abs     int64
+		Read    string
+		ReadErr error
+	}{
+		{2, io.SeekStart, 2, "ABC\x00\x00", nil},    // pos now 7
+		{-7, io.SeekCurrent, 0, "\x00\x00ABC", nil}, // pos now 5
+		{100, io.SeekCurrent, 105, "", io.EOF},
+		{-3, io.SeekEnd, 17, "JKL", io.EOF},
+
+		{2, sparse.SeekData, 2, "ABC\x00\x00", nil},
+		{2, sparse.SeekHole, 5, "\x00\x00\x00DE", nil},
+		{5, sparse.SeekData, 8, "DEFGH", nil},
+		{8, sparse.SeekHole, 14, "\x00\x00\x00JK", nil},
+		{18, sparse.SeekHole, 20, "", io.EOF},
+	}
+
+	for _, test := range tests {
+		pos, err := b.Seek(test.Pos, test.Whence)
+		if pos != test.Abs || err != nil {
+			t.Errorf("Seek(%d, %d) should seek to %d, with err=nil, got %d, %v\n", test.Pos, test.Whence, test.Abs, pos, err)
+			continue
+		}
+		n, err := b.Read(buf)
+		if n != len(test.Read) || err != test.ReadErr || string(buf[:n]) != test.Read {
+			t.Errorf("Seek(%d, %d) then Read() should read %q/%v, got %q, %v\n", test.Pos, test.Whence, test.Read, test.ReadErr, string(buf[:n]), err)
+		}
+	}
+}
+
 func TestZeroFill(t *testing.T) {
 	var sbuf sparse.Buffer
 	b := sparse.NewReadSeeker(&sbuf, nil)

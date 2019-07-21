@@ -32,11 +32,17 @@ func (b *ReadSeeker) Read(p []byte) (n int, err error) {
 	return
 }
 
-// Seek seeks the file position to ofs.  Whence may be io.SeekStart, io.SeekCurrent, or io.SeekEnd
-// to change how ofs is interpreted.  The file position may be set beyond the size of the Buffer and
-// writes will create a new extent at that location.
+// Seek seeks the file position to ofs, relative to whence.  The file position
+// may be set beyond the size of the Buffer and writes will create a new extent
+// at that location.  Seek supports these values for whence:
+//
+//   io.SeekStart     seek relative to the start of the buffer
+//   io.SeekCurrent   seek relative to the current position of the buffer
+//   io.SeekEnd       seek relative to the end of the buffer
+//   SeekData         seek relative to the start for data bytes
+//   SeekHole         seek relative to the start for a gap between data (or EOF)
 func (b *ReadSeeker) Seek(ofs int64, whence int) (n int64, err error) {
-	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.src.Size(), nil)
+	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.src.Size(), b.src)
 	n = b.filePos
 	return
 }
