@@ -5,7 +5,8 @@ import (
 )
 
 // Copy copies the sparse data from r to appropriate locations within w.  Returns the
-// number of bytes copied, excluding regions skipped.
+// number of bytes copied, excluding regions skipped.  Seeks within w will be relative
+// to the current file position.
 func Copy(w io.WriteSeeker, r Reader) (n int64, err error) {
 	for {
 		var nn, skip int64

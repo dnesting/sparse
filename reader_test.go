@@ -151,7 +151,7 @@ func TestZeroFill(t *testing.T) {
 	}
 }
 
-func ExampleReader() {
+func ExampleNewReader() {
 	var sb sparse.Buffer
 	sb.WriteAt([]byte("AAA"), 2)
 	sb.WriteAt([]byte("BBB"), 7)

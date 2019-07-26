@@ -29,7 +29,7 @@ func (s *segment) contains(ofs int64) bool {
 	return s.off <= ofs && ofs < s.end()
 }
 
-// end returns the offset after this extent, or s.off+len(s.data).
+// end returns the offset after this segment, or s.off+len(s.data).
 func (s segment) end() int64 { return s.off + int64(len(s.data)) }
 
 // Buffer provides a sparse in-memory collection of bytes.  Data may be stored
@@ -178,7 +178,7 @@ func (b *Buffer) Next() (skip int64, err error) {
 }
 
 // Size returns the apparent size of the segments, which is defined to be the offset beyond the
-// farthest write.
+// farthest write, which may be artificially extended or reduced by Truncate().
 func (b Buffer) Size() int64 {
 	if len(b.es) > 0 {
 		end := b.es[len(b.es)-1].end()
@@ -189,11 +189,12 @@ func (b Buffer) Size() int64 {
 	return b.trunc
 }
 
-// Reset empties the buffer.
+// Reset empties the buffer and resets the file position to 0.
 func (b *Buffer) Reset() {
 	b.filePos = 0
 	b.es = nil
 	b.cur = nil
+	b.trunc = 0
 }
 
 // WriteAt stores a copy of p at offset off within the Buffer.  The new readable portion of the
@@ -239,6 +240,8 @@ func (b *Buffer) writeAt(p []byte, off int64, ownP bool) (n int) {
 	return
 }
 
+// Truncate sets the size of the buffer to ofs.  Data at and after ofs will be deleted.  After this
+// call returns, Size() is guaranteed to return at least ofs.
 func (b *Buffer) Truncate(ofs int64) {
 	b.trunc = ofs
 	var i int
@@ -301,11 +304,11 @@ func (b *Buffer) fit(off, size int64) (i int, ok bool) {
 	for i = 0; i < len(b.es); i++ {
 		e := b.es[i]
 		if off+size <= e.off {
-			// next extent begins after our request, so this is a good insert spot
+			// next segment begins after our request, so this is a good insert spot
 			break
 		}
 		if off < e.off+int64(len(e.data)) {
-			// our request starts before this extent ends, so there's some sort of overlap
+			// our request starts before this segment ends, so there's some sort of overlap
 			return i, false
 		}
 	}
@@ -337,8 +340,8 @@ func (b *Buffer) writeInsert(p []byte, off int64, ownP bool) (n int) {
 //   io.SeekStart     seek relative to the start of the buffer
 //   io.SeekCurrent   seek relative to the current position of the buffer
 //   io.SeekEnd       seek relative to the end of the buffer
-//   SeekData         seek relative to the start for data bytes
-//   SeekHole         seek relative to the start for a gap between data (or EOF)
+//   SeekData         seek relative to the start for data bytes >= ofs
+//   SeekHole         seek relative to the start for a gap between data >= ofs (or EOF)
 func (b *Buffer) Seek(ofs int64, whence int) (n int64, err error) {
 	b.filePos, err = resolveSeek(ofs, whence, b.filePos, b.Size(), b)
 	b.cur = nil

@@ -33,7 +33,7 @@ func (b *ReadSeeker) Read(p []byte) (n int, err error) {
 }
 
 // Seek seeks the file position to ofs, relative to whence.  The file position
-// may be set beyond the size of the Buffer and writes will create a new extent
+// may be set beyond the size of the Buffer and writes will create a new segment
 // at that location.  Seek supports these values for whence:
 //
 //   io.SeekStart     seek relative to the start of the buffer
@@ -54,8 +54,8 @@ func (b *ReadSeeker) fallbackOrZero() io.ReaderAt {
 	return Zero
 }
 
-// ReadAt reads from the buffer at ofs into p.  Attempts to read beyond the final extent will
-// result in io.EOF.  Attempts to read gaps between extent will be filled using the fallback
+// ReadAt reads from the buffer at ofs into p.  Attempts to read beyond the final segment will
+// result in io.EOF.  Attempts to read gaps between segment will be filled using the fallback
 // reader.  This method does not affect the file position used by Read, but may not
 // preserve the file position of the underlying ReadFinder implementation.
 func (b *ReadSeeker) ReadAt(p []byte, ofs int64) (n int, err error) {

@@ -229,35 +229,47 @@ func printable(b []byte) string {
 	return strings.Replace(string(b), "\000", ".", -1)
 }
 
-func ExampleBuffer() {
+func ExampleBuffer_finder() {
 	var sb sparse.Buffer
 	sb.WriteAt([]byte("AAA"), 2)
 	sb.WriteAt([]byte("BBB"), 7)
 	got := make([]byte, 20)
 
-	// Using the Finder interface
-	off, size, _ := sb.Find(0)
-	n, _ := sb.Read(got)
-	fmt.Printf("offset %d, size %d, found %q\n", off, size, string(got[:n]))
+	var off, size int64
+	var err error
+	for {
+		if off, size, err = sb.Find(off + size); err != nil {
+			break
+		}
+		var n int
+		if n, err = sb.Read(got); err != nil {
+			break
+		}
 
-	off, size, _ = sb.Find(off + size)
-	n, _ = sb.Read(got)
-	fmt.Printf("offset %d, size %d, found %q\n", off, size, string(got[:n]))
-
-	// Using the Reader interface
-	sb.Seek(0, io.SeekStart)
-
-	skipped, _ := sb.Next()
-	n, _ = sb.Read(got)
-	fmt.Printf("skipped %d, found %q\n", skipped, string(got[:n]))
-
-	skipped, _ = sb.Next()
-	n, _ = sb.Read(got)
-	fmt.Printf("skipped %d, found %q\n", skipped, string(got[:n]))
+		fmt.Printf("offset %d, size %d, found %q\n", off, size, string(got[:n]))
+	}
 
 	// Output:
 	// offset 2, size 3, found "AAA"
 	// offset 7, size 3, found "BBB"
+}
+
+func ExampleBuffer_reader() {
+	var sb sparse.Buffer
+	sb.WriteAt([]byte("AAA"), 2)
+	sb.WriteAt([]byte("BBB"), 7)
+	got := make([]byte, 20)
+
+	for {
+		skipped, err := sb.Next()
+		if err != nil {
+			break
+		}
+		n, _ := sb.Read(got)
+		fmt.Printf("skipped %d, found %q\n", skipped, string(got[:n]))
+	}
+
+	// Output:
 	// skipped 2, found "AAA"
 	// skipped 2, found "BBB"
 }
