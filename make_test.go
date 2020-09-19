@@ -72,6 +72,9 @@ func TestFromReader(t *testing.T) {
 }
 
 func ExampleFromReader() {
+	// This example creates a byte slice with spans of zeros in them, and converts
+	// that slice into sparse segments, showing how those spans then get iterated on.
+
 	// Start with a sparse buffer populated with a couple of segments of data.
 	var orig sparse.Buffer
 	orig.WriteAt([]byte("AAA"), 0x08)
@@ -82,8 +85,9 @@ func ExampleFromReader() {
 	fmt.Print(hex.Dump(data))
 	fmt.Println()
 
-	// Make will search for those zeros and convert the bytes back into sparse data.
-	rd := sparse.Make(bytes.NewBuffer(data), 5)
+	// Make will create a sparse Reader that will search for those zeros and convert the
+	// bytes back into sparse segments.
+	rd := sparse.Make(bytes.NewBuffer(data), 5) // 5 contiguous zeros = skip the span
 
 	// And just to demonstrate that:
 	for i := 0; i < 10; i++ {
